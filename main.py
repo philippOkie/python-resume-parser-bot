@@ -9,7 +9,6 @@ def get_user_criteria():
     english_language = input("Is English language knowledge required? (type yes or leave blank): ").strip().lower()
     keywords = input("Enter keywords (e.g., data analyst python sql or leave blank): ").strip()
 
-
     return {
         "job_position": job_position,
         "location": location if location else None,
@@ -32,6 +31,32 @@ def choose_parser():
         print("Invalid choice. Please select 1 or 2.")
         return None, None
 
+def sort_resumes_by_relevance(resumes, keywords, salary, experience, english_language):
+    """Sort resumes based on relevance to the job position."""
+    def calculate_relevance(resume):
+        score = 0
+
+        # Add points for keyword matching in skills
+        keyword_score = sum(1 for keyword in keywords if any(keyword.lower() in skill.lower() for skill in resume.get('skills', [])))
+        score += keyword_score * 2  # Give double weight to keyword match
+
+        # Salary score
+        if resume.get("salary_expectation") == salary:
+            score += 3  # Match with the expected salary
+
+        # Add experience points
+        if resume.get('experience', 0) >= experience:
+            score += 5
+
+        # Check if English language is mentioned
+        if english_language == 'yes' and 'english' in [skill.lower() for skill in resume.get('skills', [])]:
+            score += 2
+
+        return score
+
+    # Sort resumes first by relevance score and then by position name
+    return sorted(resumes, key=lambda x: (calculate_relevance(x), x.get("position", "").lower()), reverse=True)
+
 def display_resumes(resumes):
     """Display the parsed resumes in a readable format, limited to 10 resumes."""
     if resumes:
@@ -45,7 +70,6 @@ def display_resumes(resumes):
             print(f"Skills: {resume.get('skills', 'N/A')} ")
             print(f"Additional info: {resume.get('additional_info', 'N/A')}")
             print(f"Link: {resume.get('link', 'N/A')}")
-            
     else:
         print("No resumes found based on the given criteria.")
 
@@ -81,8 +105,17 @@ def main():
 
     try:
         resumes = parser.fetch_resumes()
-        display_resumes(resumes)
-        save_resumes_to_file(resumes) 
+
+        sorted_resumes = sort_resumes_by_relevance(
+            resumes,
+            keywords=criteria["keywords"].split(",") if criteria["keywords"] else [],
+            salary=criteria["salary"],
+            experience=int(criteria["years_of_experience"]) if criteria["years_of_experience"] else 0,
+            english_language=criteria["english_language"] or 'no'
+        )
+
+        display_resumes(sorted_resumes)
+        save_resumes_to_file(sorted_resumes) 
     except Exception as e:
         print(f"An error occurred while fetching resumes: {e}")
 
