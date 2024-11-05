@@ -2,6 +2,7 @@ from parsers.work_ua_parser import WorkUaParser
 
 def get_user_criteria():
     """Prompt the user to enter criteria for filtering resumes."""
+
     job_position = input("Enter the job position (e.g., Data Scientist, Web Developer): ").strip()
     location = input("Enter the location (e.g., Kyiv, Lviv or leave blank): ").strip()
     salary = input("Enter salary budget expectation (e.g., 20000 or leave blank for no preference): ").strip()
@@ -20,6 +21,7 @@ def get_user_criteria():
 
 def choose_parser():
     """Prompt user to choose the site to parse resumes from."""
+
     print("Select job site to parse resumes from:")
     print("1. work.ua")
     print("2. robota.ua")
@@ -33,6 +35,7 @@ def choose_parser():
 
 def sort_resumes_by_relevance(resumes, keywords, salary, experience, english_language):
     """Sort resumes based on relevance to the job position."""
+
     def calculate_relevance(resume):
         score = 0
 
@@ -59,6 +62,7 @@ def sort_resumes_by_relevance(resumes, keywords, salary, experience, english_lan
 
 def display_resumes(resumes):
     """Display the parsed resumes in a readable format, limited to 10 resumes."""
+    
     if resumes:
         limited_resumes = resumes[:10]
         print(f"\nFound {len(resumes)} resumes, displaying up to 10:")

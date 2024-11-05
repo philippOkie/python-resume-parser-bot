@@ -42,9 +42,7 @@ class WorkUaParser:
             return 166  
 
     def fetch_resumes(self):
-        """Fetch resumes based on the initialized criteria."""
         search_url = self.build_search_url()
-        print(f"Fetching resumes from URL: {search_url}")
 
         page_to_scrape = requests.get(search_url)
         if page_to_scrape.status_code != 200:
@@ -66,7 +64,6 @@ class WorkUaParser:
         return resume_data
     
     def build_search_url(self):
-            """Construct the search URL based on the user's criteria."""
             search_url = self.BASE_URL
             query_params = []
 
@@ -100,7 +97,6 @@ class WorkUaParser:
             return search_url
     
     def fetch_and_parse_resume(self, url):
-        """Fetch a resume page and parse its contents."""
         resume_page = requests.get(url)
         if resume_page.status_code != 200:
             print(f"Failed to retrieve resume page: {url}")
@@ -110,7 +106,6 @@ class WorkUaParser:
         return self.parse_resume(resume_soup, url)
 
     def parse_resume(self, resume, link):
-        """Extract information from the resume page."""
         position = self.get_text(resume, 'h2', 'mt-lg sm:mt-xl', "Not specified")
         salary_expectation = self.get_salary_expectation(resume)
 
@@ -130,13 +125,11 @@ class WorkUaParser:
         }
 
     def get_salary_expectation(self, resume):
-        """Extract salary expectation from the resume."""
         salary_tag = resume.find('span', class_='text-muted-print')
         salary_text = salary_tag.text.strip().replace("&nbsp;", " ") if salary_tag else "Not specified"
         return salary_text.replace(',', '').strip()
 
     def parse_experiences(self, resume):
-        """Extract job and education experiences from the resume."""
         experiences = []
         job_edu_titles = resume.find_all('h2', class_='h4 strong-600 mt-lg sm:mt-xl')
 
@@ -147,7 +140,6 @@ class WorkUaParser:
         return experiences
 
     def extract_experience_details(self, job_edu_title_element):
-        """Extract details of a single job or education experience."""
         title = job_edu_title_element.text.strip() if job_edu_title_element else "Not specified"
 
         company_element = job_edu_title_element.find_next('p', class_='mb-0')
@@ -168,19 +160,16 @@ class WorkUaParser:
         }
 
     def extract_company_name(self, name_with_duration):
-        """Extract the company name from the name with duration."""
         if '\n' in name_with_duration:
             return name_with_duration.split('\n')[-1].strip()
         return name_with_duration.strip()
 
     def clean_duration(self, duration):
-        """Clean up the duration string."""
         if '(' in duration and ')' in duration:
             return duration.replace('(', '').replace(')', '').strip()
         return duration
 
     def parse_skills(self, resume):
-        """Extract skills from the resume."""
         skills = []
         skill_items = resume.find_all('li', class_='no-style mr-sm mt-sm')
 
@@ -191,7 +180,6 @@ class WorkUaParser:
         return skills
 
     def get_location(self, resume):
-        """Extract the location from the resume."""
         details = resume.find_all('dt')
         for detail in details:
             if "Місто проживання" in detail.text.strip():
