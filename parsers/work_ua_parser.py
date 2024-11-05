@@ -47,7 +47,7 @@ class WorkUaParser:
 
         page_to_scrape = requests.get(search_url)
         if page_to_scrape.status_code != 200:
-            print("Failed to retrieve data from work.ua")
+            print(f"Failed to retrieve data from work.ua: {search_url}")
             return []
 
         soup = BeautifulSoup(page_to_scrape.text, "html.parser")
@@ -63,40 +63,42 @@ class WorkUaParser:
                     resume_data.append(parsed_resume)
 
         return resume_data
-
+    
     def build_search_url(self):
-        """Construct the search URL based on the user's criteria."""
-        if self.location != None:
-            search_url = f"{self.BASE_URL}-{self.location}-{self.job_position}".replace(" ", "+").lower()
-        else:
-            search_url = f"{self.BASE_URL}-{self.job_position}".replace(" ", "+").lower()
+            """Construct the search URL based on the user's criteria."""
+            search_url = self.BASE_URL
 
-        if self.keywords:
-            keyword_string = "+".join(self.keywords.split())
-            search_url += f"+{keyword_string}"
+            if self.location:
+                search_url += f"-{self.location.replace(' ', '+').lower()}"
 
-        query_params = []
+            search_url += f"-{self.job_position.replace(' ', '+').lower()}"
 
-        if self.keywords:
+            if self.keywords:
+                keyword_string = "+".join(self.keywords.split())
+                search_url += f"+{keyword_string}"
+
+            query_params = []
+
             query_params.append("notitle=1")
 
-        if self.salary:
-            salary_code = self.get_salary_code(int(self.salary))
-            query_params.append(f"salaryfrom={salary_code}")
-        
-        if self.experience is not None:
-            experience_code = self.get_experience_code(self.experience)
-            query_params.append(f"experience={experience_code}")
-        
-        if self.english_language:
-            query_params.append("language=1")
+            if self.salary:
+                salary_code = self.get_salary_code(int(self.salary))
+                query_params.append(f"salaryto={salary_code}")
+            
+            if self.experience is not None:
+                experience_code = self.get_experience_code(self.experience)
+                query_params.append(f"experience={experience_code}")
+            
+            if self.english_language:
+                query_params.append("language=1")
 
-        if query_params:
-            search_url += "/?" + "&".join(query_params)
-        else:
-            search_url += "/"
+            if query_params:
+                search_url += "/?" + "&".join(query_params)
+            else:
+                search_url += "/"
 
-        return search_url
+            return search_url
+    
     def fetch_and_parse_resume(self, url):
         """Fetch a resume page and parse its contents."""
         resume_page = requests.get(url)
