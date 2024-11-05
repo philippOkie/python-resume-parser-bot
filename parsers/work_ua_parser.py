@@ -1,6 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-import json
 
 class WorkUaParser:
     BASE_URL = "https://www.work.ua/resumes-"
@@ -137,9 +136,3 @@ class WorkUaParser:
             "add_info": add_info,
             "link": link
         }
-
-parser = WorkUaParser()
-resumes = parser.fetch_resumes()
-
-for resume in resumes:
-    print(json.dumps(resume, indent=4, ensure_ascii=False))
