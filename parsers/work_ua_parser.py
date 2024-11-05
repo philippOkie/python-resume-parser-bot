@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 
 class WorkUaParser:
     BASE_URL = "https://www.work.ua/resumes"
-
     salary_mapping = {
         10000: 2,
         15000: 3,
@@ -39,7 +38,7 @@ class WorkUaParser:
             return 165  
         else:
             return 166  
-    
+
     def fetch_resumes(self):
         """Fetch resumes based on the initialized criteria."""
         search_url = self.build_search_url()
@@ -199,12 +198,46 @@ class WorkUaParser:
         return "Not specified"
 
     def get_text(self, soup, tag=None, class_name=None, id=None, default="Not specified"):
-        """Utility function to get text from a specific tag or id."""
+        """Helper function to extract text from HTML."""
         if tag and class_name:
             element = soup.find(tag, class_=class_name)
-        elif id:
-            element = soup.find(id=id)
+        elif tag and id:
+            element = soup.find(tag, id=id)
+        elif tag:
+            element = soup.find(tag)
         else:
-            return default
+            element = None
 
         return element.text.strip() if element else default
+    
+def sort_resumes_by_relevance(resumes, keywords, salary, experience, english_language):
+    """Sort resumes based on relevance to the job position."""
+    def calculate_relevance(resume):
+        score = 0
+
+        # Add points for keyword matching in skills
+        keyword_score = sum(1 for keyword in keywords if any(keyword.lower() in skill.lower() for skill in resume.get('skills', [])))
+        score += keyword_score * 2  # Give double weight to keyword match
+
+        # Salary score
+        if resume.get("salary_expectation") == salary:
+            score += 3  # Match with the expected salary
+
+        # Add experience points
+        if resume.get('experience', 0) >= experience:
+            score += 5
+
+        # Check if English language is mentioned
+        if english_language == 'yes' and 'english' in [skill.lower() for skill in resume.get('skills', [])]:
+            score += 2
+
+        return score
+
+    return sorted(resumes, key=lambda x: (calculate_relevance(x), x.get("position", "").lower()), reverse=True)
+
+parser = WorkUaParser(job_position="Data Scientist", location="Kyiv", salary=80000, experience=3, english_language='yes', keywords="Python, SQL")
+resumes = parser.fetch_resumes()
+sorted_resumes = sort_resumes_by_relevance(resumes, keywords=["Python", "SQL"], salary=30000, experience=3, english_language='yes')
+
+for resume in sorted_resumes:
+    print(resume["position"], resume["salary_expectation"], resume["location"])
