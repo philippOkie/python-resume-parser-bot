@@ -4,7 +4,7 @@ def get_user_criteria():
     """Prompt the user to enter criteria for filtering resumes."""
     job_position = input("Enter the job position (e.g., Data Scientist, Web Developer): ").strip()
     location = input("Enter the location (e.g., Kyiv, Lviv or leave blank): ").strip()
-    salary = input("Enter minimum salary expectation (e.g., 20000 or leave blank for no preference): ").strip()
+    salary = input("Enter salary budget expectation (e.g., 20000 or leave blank for no preference): ").strip()
     years_of_experience = input("Enter minimum years of experience (e.g. 7 or leave blank for no preference): ").strip()
     english_language = input("Is English language knowledge required? (type yes or leave blank): ").strip().lower()
     keywords = input("Enter keywords (e.g., data analyst python sql or leave blank): ").strip()
