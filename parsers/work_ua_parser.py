@@ -3,15 +3,6 @@ from bs4 import BeautifulSoup
 
 class WorkUaParser:
     BASE_URL = "https://www.work.ua/resumes"
-    salary_mapping = {
-        10000: 2,
-        15000: 3,
-        20000: 4,
-        30000: 5,
-        40000: 6,
-        50000: 7,
-        100000: 8
-    }
 
     def __init__(self, job_position, location="", salary=None, experience=None, english_language=None, keywords=None):
         self.job_position = job_position
@@ -23,12 +14,23 @@ class WorkUaParser:
         self.resumes = []
 
     def get_salary_code(self, salary):
-        """Map salary to corresponding code."""
-        for threshold, code in sorted(self.salary_mapping.items()):
-            if salary <= threshold:
-                return code
-        return 2 
-
+        if salary <= 10000:
+            return 2
+        elif salary <= 15000:
+            return 3
+        elif salary <= 20000:
+            return 4
+        elif salary <= 30000:
+            return 5
+        elif salary <= 40000:
+            return 6
+        elif salary <= 50000:
+            return 7
+        elif salary <= 100000:
+            return 8
+        else:
+            return 8 
+        
     def get_experience_code(self, experience):
         if experience == 0:
             return 1
@@ -66,6 +68,7 @@ class WorkUaParser:
     def build_search_url(self):
             """Construct the search URL based on the user's criteria."""
             search_url = self.BASE_URL
+            query_params = []
 
             if self.location:
                 search_url += f"-{self.location.replace(' ', '+').lower()}"
@@ -73,16 +76,14 @@ class WorkUaParser:
             search_url += f"-{self.job_position.replace(' ', '+').lower()}"
 
             if self.keywords:
+                query_params.append("notitle=1")
                 keyword_string = "+".join(self.keywords.split())
                 search_url += f"+{keyword_string}"
-
-            query_params = []
-
-            query_params.append("notitle=1")
 
             if self.salary:
                 salary_code = self.get_salary_code(int(self.salary))
                 query_params.append(f"salaryto={salary_code}")
+                query_params.append(f"salaryfrom={salary_code - 2}")
             
             if self.experience is not None:
                 experience_code = self.get_experience_code(self.experience)
@@ -197,16 +198,4 @@ class WorkUaParser:
                 return detail.find_next_sibling('dd').text.strip() if detail.find_next_sibling('dd') else "Not specified"
         return "Not specified"
 
-    def get_text(self, soup, tag=None, class_name=None, id=None, default="Not specified"):
-        """Helper function to extract text from HTML."""
-        if tag and class_name:
-            element = soup.find(tag, class_=class_name)
-        elif tag and id:
-            element = soup.find(tag, id=id)
-        elif tag:
-            element = soup.find(tag)
-        else:
-            element = None
-
-        return element.text.strip() if element else default
-    
+  
