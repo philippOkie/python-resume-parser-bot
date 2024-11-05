@@ -1,8 +1,6 @@
 from parsers.work_ua_parser import WorkUaParser
 
 def get_user_criteria():
-    """Prompt the user to enter criteria for filtering resumes."""
-
     job_position = input("Enter the job position (e.g., Data Scientist, Web Developer): ").strip()
     location = input("Enter the location (e.g., Kyiv, Lviv or leave blank): ").strip()
     salary = input("Enter salary budget expectation (e.g., 20000 or leave blank for no preference): ").strip()
@@ -20,8 +18,6 @@ def get_user_criteria():
     }
 
 def choose_parser():
-    """Prompt user to choose the site to parse resumes from."""
-
     print("Select job site to parse resumes from:")
     print("1. work.ua")
     print("2. robota.ua")
@@ -61,8 +57,6 @@ def sort_resumes_by_relevance(resumes, keywords, salary, experience, english_lan
     return sorted(resumes, key=lambda x: (calculate_relevance(x), x.get("position", "").lower()), reverse=True)
 
 def display_resumes(resumes):
-    """Display the parsed resumes in a readable format, limited to 10 resumes."""
-    
     if resumes:
         limited_resumes = resumes[:10]
         print(f"\nFound {len(resumes)} resumes, displaying up to 10:")
@@ -79,18 +73,6 @@ def display_resumes(resumes):
             print(f"Link: {resume.get('link', 'N/A')}")
     else:
         print("No resumes found based on the given criteria.")
-
-def save_resumes_to_file(resumes, filename="resumes.txt"):
-    """Save the fetched resumes to a text file."""
-    with open(filename, 'w', encoding='utf-8') as file:
-        for resume in resumes:
-            file.write(f"Position: {resume.get('position', 'N/A')}\n")
-            file.write(f"Location: {resume.get('location', 'N/A')}\n")
-            file.write(f"Salary Expectation: {resume.get('salary_expectation', 'N/A')}\n")
-            file.write(f"Link: {resume.get('link', 'N/A')}\n")
-            file.write("\n" + "-"*40 + "\n\n")  
-
-    print(f"Resumes saved to {filename}")
 
 def main():
     criteria = get_user_criteria()
