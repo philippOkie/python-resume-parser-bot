@@ -1,16 +1,19 @@
 from parsers.work_ua_parser import WorkUaParser
-from parsers.robota_ua_parser import RobotaUaParser
 
 def get_user_criteria():
     """Prompt the user to enter criteria for filtering resumes."""
     job_position = input("Enter the job position (e.g., Data Scientist, Web Developer): ").strip()
     location = input("Enter the location (e.g., Kyiv, Lviv or leave blank): ").strip()
     salary = input("Enter minimum salary expectation (e.g., 20000 or leave blank for no preference): ").strip()
-    
+    years_of_experience = input("Enter minimum years of experience (e.g. 7 or leave blank for no preference): ").strip()
+    english_language = input("Is English language knowledge required? (type yes or leave blank): ").strip().lower()
+
     return {
         "job_position": job_position,
         "location": location,
         "salary": salary if salary else None,
+        "years_of_experience": years_of_experience if years_of_experience else None,
+        "english_language": english_language if english_language in ["yes", "no"] else None
     }
 
 def choose_parser():
@@ -22,27 +25,35 @@ def choose_parser():
     
     if site_choice == "1":
         return WorkUaParser, "work.ua"
-    elif site_choice == "2":
-        return RobotaUaParser, "robota.ua"
     else:
         print("Invalid choice. Please select 1 or 2.")
         return None, None
 
 def display_resumes(resumes):
-    """Display the parsed resumes in a readable format."""
+    """Display the parsed resumes in a readable format, limited to 5 resumes."""
     if resumes:
-        print(f"\nFound {len(resumes)} resumes:")
-        for idx, resume in enumerate(resumes, start=1):
+        limited_resumes = resumes[:5]
+        print(f"\nFound {len(resumes)} resumes, displaying up to 5:")
+        for idx, resume in enumerate(limited_resumes, start=1):
             print(f"\nResume {idx}:")
-            print(f"Name: {resume.get('name', 'N/A')}")
             print(f"Position: {resume.get('position', 'N/A')}")
-            print(f"Experience: {resume.get('experience_years', 'N/A')} years")
-            print(f"Skills: {', '.join(resume.get('skills', []))}")
             print(f"Location: {resume.get('location', 'N/A')}")
             print(f"Salary Expectation: {resume.get('salary_expectation', 'N/A')}")
             print(f"Link: {resume.get('link', 'N/A')}")
     else:
         print("No resumes found based on the given criteria.")
+
+def save_resumes_to_file(resumes, filename="resumes.txt"):
+    """Save the fetched resumes to a text file."""
+    with open(filename, 'w', encoding='utf-8') as file:
+        for resume in resumes:
+            file.write(f"Position: {resume.get('position', 'N/A')}\n")
+            file.write(f"Location: {resume.get('location', 'N/A')}\n")
+            file.write(f"Salary Expectation: {resume.get('salary_expectation', 'N/A')}\n")
+            file.write(f"Link: {resume.get('link', 'N/A')}\n")
+            file.write("\n" + "-"*40 + "\n\n")  # Separator for resumes
+
+    print(f"Resumes saved to {filename}")
 
 def main():
     criteria = get_user_criteria()
@@ -51,12 +62,20 @@ def main():
     if not parser_class:
         return  
 
-    parser = parser_class(**criteria)
+    parser = parser_class(
+        job_position=criteria["job_position"], 
+        location=criteria["location"], 
+        salary=criteria["salary"],
+        experience=criteria["years_of_experience"],
+        english_language=criteria["english_language"]
+    )
+    
     print(f"Fetching resumes from {site_name}...")
 
     try:
-        parser.fetch_resumes()
-        display_resumes(parser.resumes)
+        resumes = parser.fetch_resumes()
+        display_resumes(resumes)
+        save_resumes_to_file(resumes) 
     except Exception as e:
         print(f"An error occurred while fetching resumes: {e}")
 
