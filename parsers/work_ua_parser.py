@@ -3,10 +3,41 @@ from bs4 import BeautifulSoup
 import json
 
 class WorkUaParser:
-    BASE_URL = "https://www.work.ua/resumes-it/"
+    BASE_URL = "https://www.work.ua/resumes-"
+
+    salary_mapping = {
+        10000: 2,
+        15000: 3,
+        20000: 4,
+        30000: 5,
+        40000: 6,
+        50000: 7,
+        100000: 8
+    }
+
+    def get_salary_code(self, salary):
+        for threshold, code in sorted(self.salary_mapping.items()):
+            if salary <= threshold:
+                return code
+        return 8 
+
+    def __init__(self, job_position, location="", salary=None):
+        self.job_position = job_position
+        self.location = location
+        self.salary = salary
+        self.resumes = []
 
     def fetch_resumes(self):
-        page_to_scrape = requests.get(self.BASE_URL)
+        search_url = f"{self.BASE_URL}{self.location}-{self.job_position}/".replace(" ", "+").lower()
+        
+        if self.salary:
+            salary_code = self.get_salary_code(int(self.salary))
+            search_url += f"?salaryfrom={salary_code}"
+        
+        print(f"Fetching resumes from URL: {search_url}")
+        
+        page_to_scrape = requests.get(search_url)
+        
 
         if page_to_scrape.status_code == 200:
             soup = BeautifulSoup(page_to_scrape.text, "html.parser")
