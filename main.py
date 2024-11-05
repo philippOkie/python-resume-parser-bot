@@ -67,8 +67,11 @@ def display_resumes(resumes):
             print(f"Position: {resume.get('position', 'N/A')}")
             print(f"Location: {resume.get('location', 'N/A')}")
             print(f"Salary Expectation: {resume.get('salary_expectation', 'N/A')}")
-            print(f"Skills: {resume.get('skills', 'N/A')} ")
-            print(f"Additional info: {resume.get('additional_info', 'N/A')}")
+
+            skills = resume.get('skills', [])
+            skills_str = ", ".join(skills) if skills else 'Not Specified'  
+            print(f"Skills: {skills_str}")
+
             print(f"Link: {resume.get('link', 'N/A')}")
     else:
         print("No resumes found based on the given criteria.")
