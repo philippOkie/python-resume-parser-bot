@@ -7,13 +7,16 @@ def get_user_criteria():
     salary = input("Enter minimum salary expectation (e.g., 20000 or leave blank for no preference): ").strip()
     years_of_experience = input("Enter minimum years of experience (e.g. 7 or leave blank for no preference): ").strip()
     english_language = input("Is English language knowledge required? (type yes or leave blank): ").strip().lower()
+    keywords = input("Enter keywords (e.g., data analyst python sql or leave blank): ").strip()
+
 
     return {
         "job_position": job_position,
-        "location": location,
+        "location": location if location else None,
         "salary": salary if salary else None,
         "years_of_experience": years_of_experience if years_of_experience else None,
-        "english_language": english_language if english_language in ["yes", "no"] else None
+        "english_language": english_language if english_language in ["yes", "no"] else None,
+        "keywords": keywords if keywords else None 
     }
 
 def choose_parser():
@@ -30,16 +33,19 @@ def choose_parser():
         return None, None
 
 def display_resumes(resumes):
-    """Display the parsed resumes in a readable format, limited to 5 resumes."""
+    """Display the parsed resumes in a readable format, limited to 10 resumes."""
     if resumes:
-        limited_resumes = resumes[:5]
-        print(f"\nFound {len(resumes)} resumes, displaying up to 5:")
+        limited_resumes = resumes[:10]
+        print(f"\nFound {len(resumes)} resumes, displaying up to 10:")
         for idx, resume in enumerate(limited_resumes, start=1):
             print(f"\nResume {idx}:")
             print(f"Position: {resume.get('position', 'N/A')}")
             print(f"Location: {resume.get('location', 'N/A')}")
             print(f"Salary Expectation: {resume.get('salary_expectation', 'N/A')}")
+            print(f"Skills: {resume.get('skills', 'N/A')} ")
+            print(f"Additional info: {resume.get('additional_info', 'N/A')}")
             print(f"Link: {resume.get('link', 'N/A')}")
+            
     else:
         print("No resumes found based on the given criteria.")
 
@@ -51,7 +57,7 @@ def save_resumes_to_file(resumes, filename="resumes.txt"):
             file.write(f"Location: {resume.get('location', 'N/A')}\n")
             file.write(f"Salary Expectation: {resume.get('salary_expectation', 'N/A')}\n")
             file.write(f"Link: {resume.get('link', 'N/A')}\n")
-            file.write("\n" + "-"*40 + "\n\n")  # Separator for resumes
+            file.write("\n" + "-"*40 + "\n\n")  
 
     print(f"Resumes saved to {filename}")
 
@@ -67,7 +73,8 @@ def main():
         location=criteria["location"], 
         salary=criteria["salary"],
         experience=criteria["years_of_experience"],
-        english_language=criteria["english_language"]
+        english_language=criteria["english_language"],
+        keywords=criteria["keywords"] 
     )
     
     print(f"Fetching resumes from {site_name}...")

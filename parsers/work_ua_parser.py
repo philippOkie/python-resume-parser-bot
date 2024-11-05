@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 
 class WorkUaParser:
-    BASE_URL = "https://www.work.ua/resumes-"
+    BASE_URL = "https://www.work.ua/resumes"
 
     salary_mapping = {
         10000: 2,
@@ -14,12 +14,13 @@ class WorkUaParser:
         100000: 8
     }
 
-    def __init__(self, job_position, location="", salary=None, experience=None, english_language=None):
+    def __init__(self, job_position, location="", salary=None, experience=None, english_language=None, keywords=None):
         self.job_position = job_position
         self.location = location
         self.salary = salary
         self.experience = experience  
         self.english_language = english_language
+        self.keywords = keywords
         self.resumes = []
 
     def get_salary_code(self, salary):
@@ -65,21 +66,37 @@ class WorkUaParser:
 
     def build_search_url(self):
         """Construct the search URL based on the user's criteria."""
-        search_url = f"{self.BASE_URL}{self.location}-{self.job_position}/".replace(" ", "+").lower()
+        if self.location != None:
+            search_url = f"{self.BASE_URL}-{self.location}-{self.job_position}".replace(" ", "+").lower()
+        else:
+            search_url = f"{self.BASE_URL}-{self.job_position}".replace(" ", "+").lower()
+
+        if self.keywords:
+            keyword_string = "+".join(self.keywords.split())
+            search_url += f"+{keyword_string}"
+
+        query_params = []
+
+        if self.keywords:
+            query_params.append("notitle=1")
 
         if self.salary:
             salary_code = self.get_salary_code(int(self.salary))
-            search_url += f"?salaryfrom={salary_code}"
+            query_params.append(f"salaryfrom={salary_code}")
         
         if self.experience is not None:
-            experience_code = self.get_experience_code(self.experience) 
-            search_url += f"&experience={experience_code}"
+            experience_code = self.get_experience_code(self.experience)
+            query_params.append(f"experience={experience_code}")
         
         if self.english_language:
-            search_url += "&language=1"
+            query_params.append("language=1")
+
+        if query_params:
+            search_url += "/?" + "&".join(query_params)
+        else:
+            search_url += "/"
 
         return search_url
-
     def fetch_and_parse_resume(self, url):
         """Fetch a resume page and parse its contents."""
         resume_page = requests.get(url)
