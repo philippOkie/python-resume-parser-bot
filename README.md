@@ -1,1 +1,1 @@
-# python-bot
+# python-resume-parser-bot 
