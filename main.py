@@ -104,7 +104,6 @@ def main():
         )
 
         display_resumes(sorted_resumes)
-        save_resumes_to_file(sorted_resumes) 
     except Exception as e:
         print(f"An error occurred while fetching resumes: {e}")
 
