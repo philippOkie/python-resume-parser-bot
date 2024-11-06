@@ -185,5 +185,18 @@ class WorkUaParser:
             if "Місто проживання" in detail.text.strip():
                 return detail.find_next_sibling('dd').text.strip() if detail.find_next_sibling('dd') else "Not specified"
         return "Not specified"
+    
+    def get_text(self, soup, tag=None, class_name=None, id=None, default="Not specified"):
+        """Helper function to extract text from HTML."""
+        if tag and class_name:
+            element = soup.find(tag, class_=class_name)
+        elif tag and id:
+            element = soup.find(tag, id=id)
+        elif tag:
+            element = soup.find(tag)
+        else:
+            element = None
+
+        return element.text.strip() if element else default
 
   
