@@ -80,7 +80,8 @@ class WorkUaParser:
             if self.salary:
                 salary_code = self.get_salary_code(int(self.salary))
                 query_params.append(f"salaryto={salary_code}")
-                query_params.append(f"salaryfrom={salary_code - 2}")
+                if salary_code >= 3: 
+                    query_params.append(f"salaryfrom={salary_code - 2}")
             
             if self.experience is not None:
                 experience_code = self.get_experience_code(self.experience)
