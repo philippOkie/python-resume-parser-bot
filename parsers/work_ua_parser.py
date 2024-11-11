@@ -13,36 +13,17 @@ class WorkUaParser:
         self.keywords = keywords
         self.resumes = []
 
-    def get_salary_code(self, salary):
-        if salary <= 10000:
-            return 2
-        elif salary <= 15000:
-            return 3
-        elif salary <= 20000:
-            return 4
-        elif salary <= 30000:
-            return 5
-        elif salary <= 40000:
-            return 6
-        elif salary <= 50000:
-            return 7
-        elif salary <= 100000:
-            return 8
-        else:
-            return 8 
-        
-    def get_experience_code(self, experience):
-        if experience == 0:
-            return 1
-        elif 1 <= experience <= 3:
-            return 164  
-        elif experience >= 5:
-            return 165  
-        else:
-            return 166  
+    def fetch_multiple_pages(self, num_pages=10):
+        all_resumes = []
+        for page in range(1, num_pages + 1):
+            print(f"Fetching page {page}...")
+            page_resumes = self.fetch_resumes(page)
+            if page_resumes:
+                all_resumes.extend(page_resumes)
+        return all_resumes
 
-    def fetch_resumes(self):
-        search_url = self.build_search_url()
+    def fetch_resumes(self, page):
+        search_url = self.build_search_url(page)
 
         page_to_scrape = requests.get(search_url)
         if page_to_scrape.status_code != 200:
@@ -63,7 +44,7 @@ class WorkUaParser:
 
         return resume_data
     
-    def build_search_url(self):
+    def build_search_url(self, page=1):
             search_url = self.BASE_URL
             query_params = []
 
@@ -95,6 +76,7 @@ class WorkUaParser:
             else:
                 search_url += "/"
 
+            search_url += f"&page={page}"  # Adding page parameter for pagination
             return search_url
     
     def fetch_and_parse_resume(self, url):
@@ -200,4 +182,52 @@ class WorkUaParser:
 
         return element.text.strip() if element else default
 
-  
+    def get_salary_code(self, salary):
+        if salary <= 10000:
+            return 2
+        elif salary <= 15000:
+            return 3
+        elif salary <= 20000:
+            return 4
+        elif salary <= 30000:
+            return 5
+        elif salary <= 40000:
+            return 6
+        elif salary <= 50000:
+            return 7
+        elif salary <= 100000:
+            return 8
+        else:
+            return 8 
+        
+    def get_experience_code(self, experience):
+        if experience == 0:
+            return 1
+        elif 1 <= experience <= 3:
+            return 164  
+        elif experience >= 5:
+            return 165  
+        else:
+            return 166
+
+    def __str__(self):
+        resume_str = f"Position: {self.position}\n"
+        resume_str += f"Salary Expectation: {self.salary_expectation}\n"
+        resume_str += f"Location: {self.location}\n"
+        resume_str += f"Additional Info: {self.add_info}\n"
+        resume_str += f"Skills: {', '.join(self.skills)}\n"
+        resume_str += f"Experience:\n"
+        for exp in self.jobs_and_education:
+            resume_str += f"\t{exp['title']} at {exp['name']} ({exp['duration']})\n"
+        return resume_str
+
+# Parser testing
+parser = WorkUaParser(job_position="data scienstist", location="Kyiv", experience=3, english_language="yes", keywords="python sql")
+resumes = parser.fetch_multiple_pages(num_pages=6)
+
+if resumes:
+    for resume in resumes:
+        print(resume)
+        print("="*40)  # Just a separator for better readability
+else:
+    print("No resumes found!")
