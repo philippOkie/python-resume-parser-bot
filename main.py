@@ -6,8 +6,6 @@ import os
 
 load_dotenv()
 
-
-
 # Stages of the conversation
 JOB_POSITION, LOCATION, SALARY, EXPERIENCE, ENGLISH_LANGUAGE, KEYWORDS = range(6)
 

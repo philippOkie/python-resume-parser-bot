@@ -222,7 +222,7 @@ class WorkUaParser:
         return resume_str
 
 # Parser testing
-parser = WorkUaParser(job_position="data scienstist", location="Kyiv", experience=3, english_language="yes", keywords="python sql")
+parser = WorkUaParser(job_position="designer", location="Kyiv", experience=3, english_language="yes")
 resumes = parser.fetch_multiple_pages(num_pages=6)
 
 if resumes:
