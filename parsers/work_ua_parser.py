@@ -24,8 +24,9 @@ class WorkUaParser:
 
     def fetch_resumes(self, page=1):
         search_url = self.build_search_url(page)
-
+        print(f"Fetching URL: {search_url}")  #
         page_to_scrape = requests.get(search_url)
+
         if page_to_scrape.status_code != 200:
             print(f"Failed to retrieve data from work.ua: {search_url}")
             return []
@@ -38,47 +39,47 @@ class WorkUaParser:
             link_tag = resume.find('a', href=True)
             if link_tag:
                 full_url = f"https://www.work.ua{link_tag['href']}"
+                print(f"Fetching resume: {full_url}")  
                 parsed_resume = self.fetch_and_parse_resume(full_url)
                 if parsed_resume:
                     resume_data.append(parsed_resume)
 
         return resume_data
-    
+
     def build_search_url(self, page=1):
-            search_url = self.BASE_URL
-            query_params = []
+        search_url = self.BASE_URL
+        query_params = []
 
-            if self.location:
-                search_url += f"-{self.location.replace(' ', '+').lower()}"
+        if self.location:
+            search_url += f"-{self.location.replace(' ', '+').lower()}"
+        search_url += f"-{self.job_position.replace(' ', '+').lower()}"
 
-            search_url += f"-{self.job_position.replace(' ', '+').lower()}"
+        if self.keywords:
+            query_params.append("notitle=1")
+            keyword_string = "+".join(self.keywords.split())
+            search_url += f"+{keyword_string}"
 
-            if self.keywords:
-                query_params.append("notitle=1")
-                keyword_string = "+".join(self.keywords.split())
-                search_url += f"+{keyword_string}"
+        if self.salary:
+            salary_code = self.get_salary_code(int(self.salary))
+            query_params.append(f"salaryto={salary_code}")
+            if salary_code >= 3:
+                query_params.append(f"salaryfrom={salary_code - 2}")
 
-            if self.salary:
-                salary_code = self.get_salary_code(int(self.salary))
-                query_params.append(f"salaryto={salary_code}")
-                if salary_code >= 3: 
-                    query_params.append(f"salaryfrom={salary_code - 2}")
-            
-            if self.experience is not None:
-                experience_code = self.get_experience_code(self.experience)
-                query_params.append(f"experience={experience_code}")
-            
-            if self.english_language:
-                query_params.append("language=1")
+        if self.experience is not None:
+            experience_code = self.get_experience_code(self.experience)
+            query_params.append(f"experience={experience_code}")
 
-            if query_params:
-                search_url += "/?" + "&".join(query_params)
-            else:
-                search_url += "/"
+        if self.english_language:
+            query_params.append("language=1")
 
-            search_url += f"&page={page}"  # Adding page parameter for pagination
-            return search_url
-    
+        if query_params:
+            search_url += "/?" + "&".join(query_params)
+        else:
+            search_url += "/"
+
+        search_url += f"?page={page}"  # Adding page parameter for pagination
+        return search_url
+
     def fetch_and_parse_resume(self, url):
         resume_page = requests.get(url)
         if resume_page.status_code != 200:
@@ -168,7 +169,7 @@ class WorkUaParser:
             if "Місто проживання" in detail.text.strip():
                 return detail.find_next_sibling('dd').text.strip() if detail.find_next_sibling('dd') else "Not specified"
         return "Not specified"
-    
+
     def get_text(self, soup, tag=None, class_name=None, id=None, default="Not specified"):
         """Helper function to extract text from HTML."""
         if tag and class_name:
@@ -198,15 +199,15 @@ class WorkUaParser:
         elif salary <= 100000:
             return 8
         else:
-            return 8 
-        
+            return 8
+
     def get_experience_code(self, experience):
         if experience == 0:
             return 1
         elif 1 <= experience <= 3:
-            return 164  
+            return 164
         elif experience >= 5:
-            return 165  
+            return 165
         else:
             return 166
 
@@ -220,6 +221,7 @@ class WorkUaParser:
         for exp in self.jobs_and_education:
             resume_str += f"\t{exp['title']} at {exp['name']} ({exp['duration']})\n"
         return resume_str
+
 
 # Parser testing
 # parser = WorkUaParser(job_position="designer", location="Kyiv", experience=3, english_language="yes")
