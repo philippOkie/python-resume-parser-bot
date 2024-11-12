@@ -20,15 +20,17 @@ class RobotaUaParser:
         'ukraine': 0
     }
 
-    def __init__(self, job_position, location="", salary=None, experience=None, english_language=None, keywords=None):
-        self.job_position = job_position
-        self.location = location
-        self.salary = salary
-        self.experience = experience  
-        self.english_language = english_language
-        self.keywords = keywords
+    def __init__(self, job_position, location="-", salary=None, experience=None, english_language=None, keywords=None):
+        self.job_position = job_position if job_position != "-" else "3D Designer"  # Default job position
+        self.location = location if location != "-" else "ukraine"  # Default location
+        self.salary = salary if salary and salary.get("from", 0) != "-" else {"from": 20000, "to": 40000}  # Default salary range
+        self.experience = experience if experience != "-" else 2  # Default experience (1-2 years)
+        self.english_language = english_language if english_language != "-" else True  # Default: English is required
+        self.keywords = keywords if keywords != "-" else self.job_position # Default keyword for search
+
         self.resumes = []
 
+        # Initialize payload
         self.payload = {
             "page": 0,
             "period": "ThreeMonths",
@@ -62,22 +64,21 @@ class RobotaUaParser:
         }
 
     def update_payload(self):
-        # Handle city selection
+        self.payload["keyWords"] = self.keywords if self.keywords != self.job_position else self.job_position
+
         if self.location.lower() in self.city_mapping:
             self.payload["cityId"] = self.city_mapping[self.location.lower()]
 
-        # Handle salary expectations
         if self.salary:
             salary_from = self.salary.get("from", 0)
             if salary_from < 10000:
-                salary_from = 20000  # Set the minimum salary "from" value
-            salary_to = self.salary.get("to", salary_from + 10000)  # Default "to" value if not provided
+                salary_from = 20000 
+            salary_to = self.salary.get("to", salary_from + 10000)  
             self.payload["salary"] = {
                 "from": salary_from,
                 "to": salary_to
             }
 
-        # Handle experience selection
         if self.experience is not None:
             if self.experience < 1:
                 self.payload["experienceIds"] = ["1"]
@@ -90,12 +91,11 @@ class RobotaUaParser:
             else:  # More than 10 years
                 self.payload["experienceIds"] = ["5"]
 
-        # Handle English language selection
         if self.english_language:
-            self.payload["languages"] = ["1"]  # Assuming "1" is for English
+            self.payload["languages"] = ["1"] 
     
-    def fetch_resumes(self, page):
-        self.update_payload()  
+    def fetch_resumes(self, page=1):  # Default page is 1
+        self.update_payload() 
         self.payload["page"] = page  
         
         response = requests.post(self.BASE_URL, headers=self.headers, json=self.payload)
@@ -113,7 +113,7 @@ class RobotaUaParser:
         print(f"Page {page} response data:")
         print(json.dumps(response_data, indent=4))
 
-        return response_data.get("data", []) 
+        return response_data.get("data", [])  
     
     def fetch_multiple_pages(self, num_pages=10):
         all_resumes = []
@@ -122,17 +122,54 @@ class RobotaUaParser:
             page_resumes = self.fetch_resumes(page)
             if page_resumes:
                 all_resumes.extend(page_resumes)
-        
-        for i, resume in enumerate(all_resumes, 1):
-            print(f"Resume {i}:")
-            pprint(resume)  
-        return all_resumes
 
-job_position = "3д дизайнер"
-location = "Kyiv"  
-parser = RobotaUaParser(job_position, location=location)
+        parsed_resumes = []
+        for resume_data in all_resumes:
+            # Ensure the fields are being accessed correctly based on the API response
+            position = resume_data.get('position', 'N/A')
+            salary_expectation = resume_data.get('salary', {}).get('from', 'N/A')  # Assuming salary is nested
+            location = resume_data.get('locationName', 'N/A')  # Based on sample, location is in 'locationName'
+            add_info = resume_data.get('addInfo', 'N/A')  # Adjust based on actual field name
+            skills = resume_data.get('skills', [])
+            jobs_and_education = resume_data.get('experience', [])  # Assuming 'experience' is the field for jobs
+            resume_link = resume_data.get('url', 'N/A')  # Assuming 'url' holds the resume link
 
-all_resumes = parser.fetch_multiple_pages(num_pages=5)
+            resume = {
+                'position': position,
+                'salary_expectation': salary_expectation,
+                'location': location,
+                'add_info': add_info,
+                'skills': skills,
+                'jobs_and_education': jobs_and_education,
+                'resume_link': resume_link
+            }
 
-for resume in all_resumes[:3]:
-    print(resume)
+            parsed_resumes.append(resume)
+
+            # Print formatted resume
+            resume_str = f"Position: {position}\n"
+            resume_str += f"Salary Expectation: {salary_expectation}\n"
+            resume_str += f"Location: {location}\n"
+            resume_str += f"Additional Info: {add_info}\n"
+            resume_str += f"Skills: {', '.join(skills)}\n"
+            resume_str += f"Experience:\n"
+            for exp in jobs_and_education:
+                title = exp.get('position', 'N/A')
+                company = exp.get('company', 'N/A')
+                duration = exp.get('datesDiff', 'N/A')
+                resume_str += f"\t{title} at {company} ({duration})\n"
+            resume_str += f"Resume Link: {resume_link}\n"
+            print(resume_str)
+
+        return parsed_resumes
+
+
+# Parser testing
+# job_position = "3д дизайнер"
+# location = "Kyiv"  
+# parser = RobotaUaParser(job_position, location=location)
+
+# all_resumes = parser.fetch_multiple_pages(num_pages=5)
+
+# for resume in all_resumes[:3]:
+#     print(resume)

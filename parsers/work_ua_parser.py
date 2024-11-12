@@ -6,11 +6,11 @@ class WorkUaParser:
 
     def __init__(self, job_position, location="", salary=None, experience=None, english_language=None, keywords=None):
         self.job_position = job_position
-        self.location = location
-        self.salary = salary
-        self.experience = experience  
-        self.english_language = english_language
-        self.keywords = keywords
+        self.location = location if location != "-" else ""
+        self.salary = salary if salary != "-" else None
+        self.experience = experience if experience != "-" else None
+        self.english_language = english_language if english_language != "-" else None
+        self.keywords = keywords if keywords != "-" else None
         self.resumes = []
 
     def fetch_multiple_pages(self, num_pages=10):
@@ -22,7 +22,7 @@ class WorkUaParser:
                 all_resumes.extend(page_resumes)
         return all_resumes
 
-    def fetch_resumes(self, page):
+    def fetch_resumes(self, page=1):
         search_url = self.build_search_url(page)
 
         page_to_scrape = requests.get(search_url)
@@ -222,12 +222,12 @@ class WorkUaParser:
         return resume_str
 
 # Parser testing
-parser = WorkUaParser(job_position="designer", location="Kyiv", experience=3, english_language="yes")
-resumes = parser.fetch_multiple_pages(num_pages=6)
+# parser = WorkUaParser(job_position="designer", location="Kyiv", experience=3, english_language="yes")
+# resumes = parser.fetch_multiple_pages(num_pages=6)
 
-if resumes:
-    for resume in resumes:
-        print(resume)
-        print("="*40)  # Just a separator for better readability
-else:
-    print("No resumes found!")
+# if resumes:
+#     for resume in resumes:
+#         print(resume)
+#         print("="*40)  # Just a separator for better readability
+# else:
+#     print("No resumes found!")

@@ -1,13 +1,15 @@
 from parsers.work_ua_parser import WorkUaParser
-from dotenv import load_dotenv 
-from telegram import Update   
+from parsers.robota_ua_parser import RobotaUaParser
+from dotenv import load_dotenv
+from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, ConversationHandler, filters, ContextTypes
 import os
 
 load_dotenv()
+TOKEN = os.getenv('TOKEN')
 
 # Stages of the conversation
-JOB_POSITION, LOCATION, SALARY, EXPERIENCE, ENGLISH_LANGUAGE, KEYWORDS = range(6)
+JOB_POSITION, LOCATION, SALARY, EXPERIENCE, ENGLISH_LANGUAGE, KEYWORDS, SITE_SELECTION = range(7)
 
 # Initialize the bot
 application = Application.builder().token(TOKEN).build()
@@ -37,54 +39,72 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Conversation steps
 async def job_position_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["job_position"] = update.message.text
-    await update.message.reply_text("Enter the location (e.g., Kyiv, Lviv or leave blank):")
+    await update.message.reply_text("Enter the location (e.g., Kyiv, Lviv or type '-' to skip):")
     return LOCATION
 
 async def location_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["location"] = update.message.text
-    await update.message.reply_text("Enter salary expectation (e.g., 20000 or leave blank for no preference):")
+    await update.message.reply_text("Enter salary expectation (e.g., 20000 or type '-' to skip):")
     return SALARY
 
 async def salary_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["salary"] = update.message.text
-    await update.message.reply_text("Enter minimum years of experience (e.g., 7 or leave blank):")
+    salary_input = update.message.text
+    context.user_data["salary"] = None if salary_input == "-" else salary_input
+    await update.message.reply_text("Enter minimum years of experience (e.g., 7 or type '-' to skip):")
     return EXPERIENCE
 
 async def experience_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["years_of_experience"] = update.message.text
-    await update.message.reply_text("Is English required? (yes or leave blank):")
+    experience_input = update.message.text
+    context.user_data["years_of_experience"] = None if experience_input == "-" else experience_input
+    await update.message.reply_text("Is English required? ('yes' or type '-' to skip):")
     return ENGLISH_LANGUAGE
 
 async def english_language_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["english_language"] = update.message.text.lower()
-    await update.message.reply_text("Enter keywords (e.g., data analyst python sql or leave blank):")
+    await update.message.reply_text("Enter keywords (e.g., data analyst python sql or type '-' to skip):")
     return KEYWORDS
 
 async def keywords_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["keywords"] = update.message.text
+    await update.message.reply_text("Which site do you want to search resumes on?\n1. Work.ua\n2. Robota.ua")
+    return SITE_SELECTION
 
-    parser_class, site_name = WorkUaParser, "work.ua"  # Only Work.ua here for simplicity
-    criteria = context.user_data
+async def site_selection_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    site_choice = update.message.text.strip()
+
+    if site_choice == "1":
+        parser_class, site_name = WorkUaParser, "Work.ua"
+    elif site_choice == "2":
+        parser_class, site_name = RobotaUaParser, "Robota.ua"
+    else:
+        await update.message.reply_text("Invalid choice. Please enter 1 for Work.ua or 2 for Robota.ua.")
+        return SITE_SELECTION
+
+    context.user_data["site"] = site_name
+
+    # Parse salary and experience if they are provided
+    salary = int(context.user_data["salary"]) if context.user_data["salary"] and context.user_data["salary"].isdigit() else None
+    experience = int(context.user_data["years_of_experience"]) if context.user_data["years_of_experience"] and context.user_data["years_of_experience"].isdigit() else None
 
     parser = parser_class(
-        job_position=criteria["job_position"], 
-        location=criteria["location"], 
-        salary=criteria["salary"],
-        experience=criteria["years_of_experience"],
-        english_language=criteria["english_language"],
-        keywords=criteria["keywords"]
+        job_position=context.user_data["job_position"],
+        location=context.user_data["location"],
+        salary=salary,
+        experience=experience,
+        english_language=context.user_data["english_language"],
+        keywords=context.user_data["keywords"]
     )
-    
+
     await update.message.reply_text(f"Fetching resumes from {site_name}...")
 
     try:
         resumes = parser.fetch_resumes()
         sorted_resumes = sort_resumes_by_relevance(
             resumes,
-            keywords=criteria["keywords"].split(",") if criteria["keywords"] else [],
-            salary=criteria["salary"],
-            experience=int(criteria["years_of_experience"]) if criteria["years_of_experience"] else 0,
-            english_language=criteria["english_language"] or 'no'
+            keywords=context.user_data["keywords"].split(",") if context.user_data["keywords"] else [],
+            salary=salary,
+            experience=experience,
+            english_language=context.user_data["english_language"] or 'no'
         )
 
         for idx, resume in enumerate(sorted_resumes[:10], start=1):
@@ -104,17 +124,23 @@ async def keywords_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def sort_resumes_by_relevance(resumes, keywords, salary, experience, english_language):
     """Sort resumes based on relevance to the job position."""
-
+    
     def calculate_relevance(resume):
         score = 0
         keyword_score = sum(1 for keyword in keywords if any(keyword.lower() in skill.lower() for skill in resume.get('skills', [])))
         score += keyword_score * 2
-        if resume.get("salary_expectation") == salary:
+        
+        resume_salary = resume.get("salary_expectation", {}).get("from", 0)
+        if salary and resume_salary == salary:
             score += 3
-        if resume.get('experience', 0) >= experience:
+        
+        resume_experience = resume.get('experience', 0)
+        if experience and resume_experience >= experience:
             score += 5
-        if english_language == 'yes' and 'english' in [skill.lower() for skill in resume.get('skills', [])]:
+        
+        if english_language == 'yes' and any('english' in skill.lower() for skill in resume.get('skills', [])):
             score += 2
+        
         return score
 
     return sorted(resumes, key=lambda x: (calculate_relevance(x), x.get("position", "").lower()), reverse=True)
@@ -128,6 +154,7 @@ conv_handler = ConversationHandler(
         EXPERIENCE: [MessageHandler(filters.TEXT & ~filters.COMMAND, experience_step)],
         ENGLISH_LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, english_language_step)],
         KEYWORDS: [MessageHandler(filters.TEXT & ~filters.COMMAND, keywords_step)],
+        SITE_SELECTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, site_selection_step)],
     },
     fallbacks=[CommandHandler("start", start_command)]
 )
