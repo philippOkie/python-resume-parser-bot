@@ -165,11 +165,11 @@ class RobotaUaParser:
 
 
 # Parser testing
-job_position = "3д дизайнер"
-location = "Kyiv"  
-parser = RobotaUaParser(job_position, location=location)
+# job_position = "3д дизайнер"
+# location = "Kyiv"  
+# parser = RobotaUaParser(job_position, location=location)
 
-all_resumes = parser.fetch_multiple_pages(num_pages=5)
+# all_resumes = parser.fetch_multiple_pages(num_pages=5)
 
-for resume in all_resumes[:3]:
-    print(resume)
+# for resume in all_resumes[:3]:
+#     print(resume)

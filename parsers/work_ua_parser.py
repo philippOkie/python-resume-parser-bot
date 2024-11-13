@@ -224,12 +224,12 @@ class WorkUaParser:
 
 
 # Parser testing
-parser = WorkUaParser(job_position="designer", location="Kyiv", experience=3, english_language="yes")
-resumes = parser.fetch_multiple_pages(num_pages=6)
+# parser = WorkUaParser(job_position="designer", location="Kyiv", experience=3, english_language="yes")
+# resumes = parser.fetch_multiple_pages(num_pages=6)
 
-if resumes:
-    for resume in resumes:
-        print(resume)
-        print("="*40)  # Just a separator for better readability
-else:
-    print("No resumes found!")
+# if resumes:
+#     for resume in resumes:
+#         print(resume)
+#         print("="*40)  # Just a separator for better readability
+# else:
+#     print("No resumes found!")
