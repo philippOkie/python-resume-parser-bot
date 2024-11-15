@@ -99,15 +99,9 @@ async def site_selection_step(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     try:
         resumes = parser.fetch_resumes()
-        sorted_resumes = sort_resumes_by_relevance(
-            resumes,
-            keywords=context.user_data["keywords"].split(",") if context.user_data["keywords"] else [],
-            salary=salary,
-            experience=experience,
-            english_language=context.user_data["english_language"] or 'no'
-        )
-
-        for idx, resume in enumerate(sorted_resumes[:10], start=1):
+        
+        # Removed sorting by relevance
+        for idx, resume in enumerate(resumes[:10], start=1):
             skills_str = ", ".join(resume.get('skills', [])) if resume.get('skills') else 'Not Specified'
             await update.message.reply_text(
                 f"\nResume {idx}:\n"
@@ -122,28 +116,6 @@ async def site_selection_step(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     return ConversationHandler.END
 
-def sort_resumes_by_relevance(resumes, keywords, salary, experience, english_language):
-    """Sort resumes based on relevance to the job position."""
-    
-    def calculate_relevance(resume):
-        score = 0
-        keyword_score = sum(1 for keyword in keywords if any(keyword.lower() in skill.lower() for skill in resume.get('skills', [])))
-        score += keyword_score * 2
-        
-        resume_salary = resume.get("salary_expectation", {}).get("from", 0)
-        if salary and resume_salary == salary:
-            score += 3
-        
-        resume_experience = resume.get('experience', 0)
-        if experience and resume_experience >= experience:
-            score += 5
-        
-        if english_language == 'yes' and any('english' in skill.lower() for skill in resume.get('skills', [])):
-            score += 2
-        
-        return score
-
-    return sorted(resumes, key=lambda x: (calculate_relevance(x), x.get("position", "").lower()), reverse=True)
 
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("search", search_command)],
