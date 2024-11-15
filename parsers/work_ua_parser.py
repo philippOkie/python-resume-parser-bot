@@ -20,11 +20,14 @@ class WorkUaParser:
             page_resumes = self.fetch_resumes(page)
             if page_resumes:
                 all_resumes.extend(page_resumes)
+            else:
+                print(f"No resumes found on page {page}, stopping further fetches.")
+                break  
         return all_resumes
 
     def fetch_resumes(self, page=1):
         search_url = self.build_search_url(page)
-        print(f"Fetching URL: {search_url}")  #
+        print(f"Fetching URL: {search_url}")
         page_to_scrape = requests.get(search_url)
 
         if page_to_scrape.status_code != 200:
@@ -34,12 +37,16 @@ class WorkUaParser:
         soup = BeautifulSoup(page_to_scrape.text, "html.parser")
         resumes = soup.find_all('div', class_='card card-hover card-search resume-link card-visited wordwrap')
 
+        if not resumes:
+            print(f"No resumes found on page {page}.")
+            return []
+
         resume_data = []
         for resume in resumes:
             link_tag = resume.find('a', href=True)
             if link_tag:
                 full_url = f"https://www.work.ua{link_tag['href']}"
-                print(f"Fetching resume: {full_url}")  
+                print(f"Fetching resume: {full_url}")
                 parsed_resume = self.fetch_and_parse_resume(full_url)
                 if parsed_resume:
                     resume_data.append(parsed_resume)
@@ -221,7 +228,6 @@ class WorkUaParser:
         for exp in self.jobs_and_education:
             resume_str += f"\t{exp['title']} at {exp['name']} ({exp['duration']})\n"
         return resume_str
-
 
 # Parser testing
 # parser = WorkUaParser(job_position="designer", location="Kyiv", experience=3, english_language="yes")
