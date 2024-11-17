@@ -9,7 +9,7 @@ load_dotenv()
 TOKEN = os.getenv('TOKEN')
 
 # Stages of the conversation
-JOB_POSITION, LOCATION, SALARY, EXPERIENCE, ENGLISH_LANGUAGE, KEYWORDS, SITE_SELECTION = range(7)
+JOB_POSITION, LOCATION, SALARY, EXPERIENCE, ENGLISH_LANGUAGE, KEYWORDS, SITE_SELECTION, RESUME_COUNT = range(8)
 
 # Initialize the bot
 application = Application.builder().token(TOKEN).build()
@@ -81,6 +81,19 @@ async def site_selection_step(update: Update, context: ContextTypes.DEFAULT_TYPE
         return SITE_SELECTION
 
     context.user_data["site"] = site_name
+    context.user_data["parser_class"] = parser_class
+    await update.message.reply_text("How many resumes would you like to retrieve? (Enter a number):")
+    return RESUME_COUNT
+
+async def resume_count_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    count_input = update.message.text.strip()
+    if not count_input.isdigit() or int(count_input) <= 0:
+        await update.message.reply_text("Please enter a valid positive number.")
+        return RESUME_COUNT
+
+    context.user_data["resume_count"] = int(count_input)
+    parser_class = context.user_data["parser_class"]
+    site_name = context.user_data["site"]
 
     # Parse salary and experience if they are provided
     salary = int(context.user_data["salary"]) if context.user_data["salary"] and context.user_data["salary"].isdigit() else None
@@ -95,13 +108,17 @@ async def site_selection_step(update: Update, context: ContextTypes.DEFAULT_TYPE
         keywords=context.user_data["keywords"]
     )
 
-    await update.message.reply_text(f"Fetching resumes from {site_name}...")
+    await update.message.reply_text(f"Fetching {context.user_data['resume_count']} resumes from {site_name}...")
 
     try:
         resumes = parser.fetch_resumes()
-        
-        # Removed sorting by relevance
-        for idx, resume in enumerate(resumes[:10], start=1):
+
+        if not resumes:
+            await update.message.reply_text("No resumes found for the given criteria.")
+            return ConversationHandler.END
+
+        # Display only the requested number of resumes
+        for idx, resume in enumerate(resumes[:context.user_data["resume_count"]], start=1):
             skills_str = ", ".join(resume.get('skills', [])) if resume.get('skills') else 'Not Specified'
             await update.message.reply_text(
                 f"\nResume {idx}:\n"
@@ -127,6 +144,7 @@ conv_handler = ConversationHandler(
         ENGLISH_LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, english_language_step)],
         KEYWORDS: [MessageHandler(filters.TEXT & ~filters.COMMAND, keywords_step)],
         SITE_SELECTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, site_selection_step)],
+        RESUME_COUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, resume_count_step)],
     },
     fallbacks=[CommandHandler("start", start_command)]
 )
