@@ -1,6 +1,4 @@
 import requests
-import json
-from pprint import pprint
 
 class RobotaUaParser:
     BASE_URL = 'https://employer-api.robota.ua/cvdb/resumes'
@@ -26,7 +24,7 @@ class RobotaUaParser:
         self.salary = salary if salary and salary.get("from", 0) != "-" else {"from": 20000, "to": 40000}  # Default salary range
         self.experience = experience if experience != "-" else 2  # Default experience (1-2 years)
         self.english_language = english_language if english_language != "-" else True  # Default: English is required
-        self.keywords = keywords if keywords != "-" else self.job_position # Default keyword for search
+        self.keywords = keywords if keywords != "-" else self.job_position  # Default keyword for search
 
         self.resumes = []
 
@@ -72,8 +70,8 @@ class RobotaUaParser:
         if self.salary:
             salary_from = self.salary.get("from", 0)
             if salary_from < 10000:
-                salary_from = 20000 
-            salary_to = self.salary.get("to", salary_from + 10000)  
+                salary_from = 20000
+            salary_to = self.salary.get("to", salary_from + 10000)
             self.payload["salary"] = {
                 "from": salary_from,
                 "to": salary_to
@@ -92,29 +90,77 @@ class RobotaUaParser:
                 self.payload["experienceIds"] = ["5"]
 
         if self.english_language:
-            self.payload["languages"] = ["1"] 
-    
-    def fetch_resumes(self, page=1):  # Default page is 1
-        self.update_payload() 
-        self.payload["page"] = page  
-        
-        response = requests.post(self.BASE_URL, headers=self.headers, json=self.payload)
-        if response.status_code != 200:
-            print(f"Failed to retrieve data from Robota.ua (Page {page}) - Status Code: {response.status_code}")
-            print(f"Response Content: {response.text}")
-            return []
-        
-        try:
-            response_data = response.json()
-        except requests.JSONDecodeError:
-            print("Failed to parse JSON response.")
-            return []
-        
-        print(f"Page {page} response data:")
-        print(json.dumps(response_data, indent=4))
+            self.payload["languages"] = ["1"]
 
-        return response_data.get("data", [])  
-    
+    def fetch_resumes(self, page=1):  # Default page is 1
+        self.update_payload()
+        self.payload["page"] = page
+
+        try:
+            response = requests.post(self.BASE_URL, headers=self.headers, json=self.payload)
+            response.raise_for_status()  # Will raise an error for HTTP error codes
+
+            response_data = response.json()
+            print(f"Page {page} response data:")
+            
+            if 'documents' in response_data:
+                documents = response_data['documents']
+                if not documents:
+                    print("No resumes found in the response.")
+                return self.parse_documents(documents)
+            else:
+                print("No documents found in the response.")
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}")
+        except requests.exceptions.JSONDecodeError:
+            print("Failed to parse JSON response.")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+        return []
+
+    def parse_documents(self, documents):
+        parsed_resumes = []
+        for doc in documents:
+            full_name = doc.get('fullName', 'N/A')
+            city = doc.get('cityName', 'N/A')
+            age = doc.get('age', 'N/A')
+            speciality = doc.get('speciality', 'N/A')
+            salary = doc.get('salary', 'N/A')
+            experience = doc.get('experience', [])
+            resume_id = doc.get('resumeId', 'N/A')
+            
+            experience_info = []
+            for exp in experience:
+                position = exp.get('position', 'N/A')
+                company = exp.get('company', 'N/A')
+                duration = exp.get('datesDiff', 'N/A')
+                experience_info.append(f"{position} at {company} ({duration})")
+
+            resume = {
+                'position': speciality,
+                'location': city,
+                'salary_expectation': salary,
+                'skills': experience_info,
+                'link': f"https://robota.ua/ru/candidates/{resume_id}"
+            }
+
+            parsed_resumes.append(resume)
+
+            # Print formatted resume
+            resume_str = f"Full Name: {full_name}\n"
+            resume_str += f"Speciality: {speciality}\n"
+            resume_str += f"City: {city}\n"
+            resume_str += f"Age: {age}\n"
+            resume_str += f"Salary: {salary}\n"
+            resume_str += f"Experience:\n"
+            for exp in experience_info:
+                resume_str += f"\t{exp}\n"
+            resume_str += f"Resume url: https://robota.ua/ru/candidates/{resume_id}\n"
+            print(resume_str)
+
+        return parsed_resumes
+
     def fetch_multiple_pages(self, num_pages=10):
         all_resumes = []
         for page in range(1, num_pages + 1):
@@ -123,46 +169,7 @@ class RobotaUaParser:
             if page_resumes:
                 all_resumes.extend(page_resumes)
 
-        parsed_resumes = []
-        for resume_data in all_resumes:
-            # Ensure the fields are being accessed correctly based on the API response
-            position = resume_data.get('position', 'N/A')
-            salary_expectation = resume_data.get('salary', {}).get('from', 'N/A')  # Assuming salary is nested
-            location = resume_data.get('locationName', 'N/A')  # Based on sample, location is in 'locationName'
-            add_info = resume_data.get('addInfo', 'N/A')  # Adjust based on actual field name
-            skills = resume_data.get('skills', [])
-            jobs_and_education = resume_data.get('experience', [])  # Assuming 'experience' is the field for jobs
-            resume_link = resume_data.get('url', 'N/A')  # Assuming 'url' holds the resume link
-
-            resume = {
-                'position': position,
-                'salary_expectation': salary_expectation,
-                'location': location,
-                'add_info': add_info,
-                'skills': skills,
-                'jobs_and_education': jobs_and_education,
-                'resume_link': resume_link
-            }
-
-            parsed_resumes.append(resume)
-
-            # Print formatted resume
-            resume_str = f"Position: {position}\n"
-            resume_str += f"Salary Expectation: {salary_expectation}\n"
-            resume_str += f"Location: {location}\n"
-            resume_str += f"Additional Info: {add_info}\n"
-            resume_str += f"Skills: {', '.join(skills)}\n"
-            resume_str += f"Experience:\n"
-            for exp in jobs_and_education:
-                title = exp.get('position', 'N/A')
-                company = exp.get('company', 'N/A')
-                duration = exp.get('datesDiff', 'N/A')
-                resume_str += f"\t{title} at {company} ({duration})\n"
-            resume_str += f"Resume Link: {resume_link}\n"
-            print(resume_str)
-
-        return parsed_resumes
-
+        return all_resumes
 
 # Parser testing
 # job_position = "3д дизайнер"
