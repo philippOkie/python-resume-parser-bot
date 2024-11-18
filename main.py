@@ -104,14 +104,18 @@ async def site_selection_step(update: Update, context: ContextTypes.DEFAULT_TYPE
             await update.message.reply_text("No resumes found for the given criteria.")
             return ConversationHandler.END
         
-        # Removed sorting by relevance
-        for idx, resume in enumerate(resumes[:], start=1):
+        # Display only 10 resumes
+        for idx, resume in enumerate(resumes[:10], start=1):
             skills_str = ", ".join(resume.get('skills', [])) if resume.get('skills') else 'Not Specified'
+            skills_str = ", ".join(resume.get('skills', [])) if resume.get('skills') else 'Not Specified'
+            salary_str = resume.get('salary_expectation', '').strip()  # Get salary and strip any spaces
+            salary_str = salary_str if salary_str else 'Not Specified' 
+
             await update.message.reply_text(
                 f"\nResume {idx}:\n"
                 f"Position: {resume.get('position', 'N/A')}\n"
                 f"Location: {resume.get('location', 'N/A')}\n"
-                f"Salary: {resume.get('salary_expectation', 'N/A')}\n"
+                f"Salary: {salary_str}\n"
                 f"Skills: {skills_str}\n"
                 f"Link: {resume.get('link', 'N/A')}"
             )
@@ -119,7 +123,6 @@ async def site_selection_step(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text(f"An error occurred while fetching resumes: {e}")
 
     return ConversationHandler.END
-
 
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("search", search_command)],
