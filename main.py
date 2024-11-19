@@ -82,14 +82,22 @@ async def site_selection_step(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     context.user_data["site"] = site_name
 
-    # Parse salary and experience if they are provided
-    salary = int(context.user_data["salary"]) if context.user_data["salary"] and context.user_data["salary"].isdigit() else None
+    salary = context.user_data["salary"]
+    
+    if salary and salary.isdigit():
+        salary = int(salary)
+    else:
+        salary = None  # If no salary or invalid, set to None
+    
+    if site_name == "Robota.ua":
+        salary = {"from": salary if salary else 20000, "to": salary if salary else 40000}  # Default salary range
+
     experience = int(context.user_data["years_of_experience"]) if context.user_data["years_of_experience"] and context.user_data["years_of_experience"].isdigit() else None
 
     parser = parser_class(
         job_position=context.user_data["job_position"],
         location=context.user_data["location"],
-        salary=salary,
+        salary=salary,  # Pass as integer for Work.ua, or dictionary for Robota.ua
         experience=experience,
         english_language=context.user_data["english_language"],
         keywords=context.user_data["keywords"]
@@ -104,12 +112,13 @@ async def site_selection_step(update: Update, context: ContextTypes.DEFAULT_TYPE
             await update.message.reply_text("No resumes found for the given criteria.")
             return ConversationHandler.END
         
-        # Display only 10 resumes
+        # Limit to 10 resumes
         for idx, resume in enumerate(resumes[:10], start=1):
             skills_str = ", ".join(resume.get('skills', [])) if resume.get('skills') else 'Not Specified'
-            skills_str = ", ".join(resume.get('skills', [])) if resume.get('skills') else 'Not Specified'
-            salary_str = resume.get('salary_expectation', '').strip()  # Get salary and strip any spaces
-            salary_str = salary_str if salary_str else 'Not Specified' 
+            
+            # Handle salary display as 'Not Specified' if empty
+            salary_str = resume.get('salary_expectation', '').strip()
+            salary_str = salary_str if salary_str else 'Not Specified'
 
             await update.message.reply_text(
                 f"\nResume {idx}:\n"
