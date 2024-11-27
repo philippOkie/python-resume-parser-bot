@@ -1,5 +1,10 @@
 # python-resume-parser-bot
 
+<img width="740" alt="Screenshot 2024-11-27 at 12 53 24" src="https://github.com/user-attachments/assets/19c6b5b7-df7d-406f-a025-eed8f7061c09">
+<img width="909" alt="Screenshot 2024-11-27 at 12 53 17" src="https://github.com/user-attachments/assets/29e74eb9-469c-47a5-87f8-05c5f1f9b830">
+
+
+
 ### 1. Створення та активація віртуального середовища
 
 # python -m venv myenv
